@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Town Bus Hits</title>
+  <meta name="description" content="The songs your Tamil Nadu town bus raised you on." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="day">
+
+<!-- ================= THE BUS, FROM YOUR SEAT ================= -->
+<svg id="scene-svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sky-day" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8ecae6"/><stop offset="1" stop-color="#eef4cf"/>
+    </linearGradient>
+    <linearGradient id="sky-night" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1b3d"/><stop offset="1" stop-color="#28355e"/>
+    </linearGradient>
+    <linearGradient id="ceil" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6efdd"/><stop offset="1" stop-color="#e7dcc0"/>
+    </linearGradient>
+    <linearGradient id="wallL" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c5d2bc"/><stop offset="1" stop-color="#aebfa6"/>
+    </linearGradient>
+    <linearGradient id="wallR" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#c5d2bc"/><stop offset="1" stop-color="#aebfa6"/>
+    </linearGradient>
+    <linearGradient id="floorG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7d7666"/><stop offset="1" stop-color="#55503f"/>
+    </linearGradient>
+    <linearGradient id="seatG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8c5636"/><stop offset="1" stop-color="#6e3f24"/>
+    </linearGradient>
+    <filter id="grainF">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+    </filter>
+    <radialGradient id="vign" cx="0.5" cy="0.46" r="0.75">
+      <stop offset="0.62" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.34"/>
+    </radialGradient>
+    <clipPath id="clip-ws-l"><rect x="486" y="256" width="222" height="248" rx="10"/></clipPath>
+    <clipPath id="clip-ws-r"><rect x="732" y="256" width="222" height="248" rx="10"/></clipPath>
+    <clipPath id="clip-win-l1"><polygon points="18,214 156,232 156,436 18,472"/></clipPath>
+    <clipPath id="clip-win-l2"><polygon points="196,237 306,251 306,414 196,428"/></clipPath>
+    <clipPath id="clip-win-l3"><polygon points="342,256 428,267 428,398 342,407"/></clipPath>
+    <clipPath id="clip-win-r1"><polygon points="1284,232 1422,214 1422,472 1284,436"/></clipPath>
+    <clipPath id="clip-win-r2"><polygon points="1134,251 1244,237 1244,428 1134,414"/></clipPath>
+    <clipPath id="clip-win-r3"><polygon points="1012,267 1098,256 1098,407 1012,398"/></clipPath>
+  </defs>
+
+  <!-- ================= SHELL ================= -->
+  <g id="cabin">
+    <!-- walls, ceiling, floor -->
+    <polygon fill="url(#wallL)" points="0,0 455,120 455,540 0,900"/>
+    <polygon fill="url(#wallR)" points="1440,0 985,120 985,540 1440,900"/>
+    <polygon fill="url(#ceil)" points="0,0 1440,0 985,120 455,120"/>
+    <g class="ribs">
+      <line x1="80" y1="0" x2="495" y2="120"/><line x1="300" y1="0" x2="580" y2="120"/>
+      <line x1="530" y1="0" x2="672" y2="120"/><line x1="760" y1="0" x2="762" y2="120"/>
+      <line x1="990" y1="0" x2="853" y2="120"/><line x1="1210" y1="0" x2="939" y2="120"/>
+      <line x1="1390" y1="0" x2="1000" y2="120"/>
+    </g>
+    <polygon fill="url(#floorG)" points="0,900 1440,900 985,540 455,540"/>
+    <polygon fill="#8a8271" opacity=".85" points="620,900 820,900 762,540 678,540"/>
+    <line x1="700" y1="540" x2="668" y2="900" class="floorstrip"/>
+    <line x1="740" y1="540" x2="772" y2="900" class="floorstrip"/>
+
+    <!-- window frames (solid) -->
+    <g class="winframe">
+      <polygon points="0,196 170,218 170,452 0,492" class="frame-outer"/>
+      <polygon points="182,235 318,252 318,418 182,432" class="frame-outer"/>
+      <polygon points="330,254 440,268 440,402 330,410" class="frame-outer"/>
+      <polygon points="1440,196 1270,218 1270,452 1440,492" class="frame-outer"/>
+      <polygon points="1258,235 1122,252 1122,418 1258,432" class="frame-outer"/>
+      <polygon points="1110,254 1000,268 1000,402 1110,410" class="frame-outer"/>
+    </g>
+
+    <!-- front bulkhead + windshield frame (solid) -->
+    <rect x="455" y="120" width="530" height="136" fill="#ece1c6"/>
+    <rect x="455" y="120" width="530" height="8" fill="#d8cba8"/>
+    <rect x="470" y="242" width="500" height="276" rx="14" fill="#ded2b2"/>
+  </g>
+
+  <!-- ================= OUTSIDE WORLD (drawn over solid frames, clipped to glass) ================= -->
+  <!-- windshield left pane -->
+  <g clip-path="url(#clip-ws-l)">
+    <rect x="486" y="256" width="222" height="248" class="skybox"/>
+    <g class="night-only">
+      <circle cx="560" cy="300" r="2" fill="#fff" opacity=".9"/><circle cx="620" cy="278" r="1.5" fill="#fff" opacity=".7"/>
+      <circle cx="675" cy="312" r="1.6" fill="#fff" opacity=".8"/><circle cx="530" cy="340" r="1.3" fill="#fff" opacity=".6"/>
+    </g>
+    <path class="hills-far" d="M486,428 Q560,400 640,422 T780,418 L780,504 L486,504 Z"/>
+    <path class="hills-near" d="M486,446 Q580,424 700,444 T800,442 L800,504 L486,504 Z"/>
+    <polygon class="roadbed" points="612,504 708,504 708,446 664,446"/>
+    <polygon class="headbeam night-only" points="640,470 708,470 708,504 600,504"/>
+    <line id="roadline" x1="700" y1="446" x2="676" y2="504" stroke="#efe3c0" stroke-width="5" stroke-dasharray="9 13"/>
+  </g>
+  <!-- windshield right pane -->
+  <g clip-path="url(#clip-ws-r)">
+    <rect x="732" y="256" width="222" height="248" class="skybox"/>
+    <g class="day-only"><circle cx="880" cy="300" r="26" fill="#ffd45e"/><circle cx="880" cy="300" r="38" fill="#ffd45e" opacity=".25"/></g>
+    <g class="night-only">
+      <circle cx="876" cy="298" r="20" fill="#f2eeda"/>
+      <circle cx="870" cy="292" r="5" fill="#d8d2b8" opacity=".8"/><circle cx="884" cy="304" r="3.4" fill="#d8d2b8" opacity=".7"/>
+      <circle cx="790" cy="280" r="1.7" fill="#fff" opacity=".85"/><circle cx="830" cy="320" r="1.4" fill="#fff" opacity=".7"/>
+      <circle cx="930" cy="290" r="1.8" fill="#fff" opacity=".8"/>
+    </g>
+    <path class="hills-far" d="M660,422 Q760,398 850,420 T954,414 L954,504 L660,504 Z"/>
+    <path class="hills-near" d="M640,444 Q750,422 860,442 T954,440 L954,504 L640,504 Z"/>
+    <polygon class="roadbed" points="732,504 836,504 788,446 732,446"/>
+    <polygon class="headbeam night-only" points="732,470 800,470 840,504 732,504"/>
+  </g>
+
+  <!-- side windows -->
+  <g clip-path="url(#clip-win-l1)"><rect x="18" y="214" width="138" height="258" class="skybox"/>
+    <g class="scenery scen-l"><path class="hills-near" d="M-40,410 Q60,368 170,404 T400,398 L400,480 L-40,480 Z"/>
+      <g class="treeband"><circle cx="40" cy="380" r="26" class="tree"/><rect x="36" y="392" width="8" height="46" class="trunk"/>
+      <circle cx="150" cy="370" r="20" class="tree"/><rect x="147" y="382" width="6" height="50" class="trunk"/>
+      <rect x="230" y="330" width="5" height="110" class="pole"/><circle cx="300" cy="376" r="24" class="tree"/><rect x="296" y="388" width="7" height="48" class="trunk"/></g></g>
+  </g>
+  <g clip-path="url(#clip-win-l2)"><rect x="196" y="237" width="110" height="191" class="skybox"/>
+    <g class="scenery scen-l"><path class="hills-near" d="M140,404 Q240,372 340,400 T520,396 L520,440 L140,440 Z"/>
+      <g class="treeband"><circle cx="240" cy="378" r="18" class="tree"/><rect x="237" y="388" width="6" height="36" class="trunk"/>
+      <rect x="330" y="342" width="4" height="86" class="pole"/></g></g>
+  </g>
+  <g clip-path="url(#clip-win-l3)"><rect x="342" y="256" width="86" height="151" class="skybox"/>
+    <g class="scenery scen-l"><path class="hills-near" d="M300,396 Q380,372 460,394 L460,420 L300,420 Z"/>
+      <g class="treeband"><circle cx="390" cy="376" r="14" class="tree"/><rect x="388" y="384" width="5" height="28" class="trunk"/></g></g>
+  </g>
+  <g clip-path="url(#clip-win-r1)"><rect x="1284" y="214" width="138" height="258" class="skybox"/>
+    <g class="scenery scen-r"><path class="hills-near" d="M1240,410 Q1340,368 1440,404 T1660,398 L1660,480 L1240,480 Z"/>
+      <g class="treeband"><circle cx="1320" cy="378" r="24" class="tree"/><rect x="1316" y="390" width="8" height="48" class="trunk"/>
+      <rect x="1400" y="330" width="5" height="110" class="pole"/></g></g>
+  </g>
+  <g clip-path="url(#clip-win-r2)"><rect x="1134" y="237" width="110" height="191" class="skybox"/>
+    <g class="scenery scen-r"><path class="hills-near" d="M1090,404 Q1180,374 1280,400 L1280,440 L1090,440 Z"/>
+      <g class="treeband"><circle cx="1180" cy="380" r="17" class="tree"/><rect x="1177" y="390" width="6" height="34" class="trunk"/></g></g>
+  </g>
+  <g clip-path="url(#clip-win-r3)"><rect x="1012" y="267" width="86" height="140" class="skybox"/>
+    <g class="scenery scen-r"><path class="hills-near" d="M980,394 Q1050,372 1120,392 L1120,418 L980,418 Z"/>
+      <g class="treeband"><rect x="1060" y="340" width="4" height="70" class="pole"/></g></g>
+  </g>
+
+  <!-- ================= INTERIOR DETAIL (over the glass) ================= -->
+  <g id="furniture">
+    <!-- window pane outlines + sliders -->
+    <g class="winframe">
+      <polygon points="18,214 156,232 156,436 18,472" class="frame-cut"/>
+      <polygon points="196,237 306,251 306,414 196,428" class="frame-cut"/>
+      <polygon points="342,256 428,267 428,398 342,407" class="frame-cut"/>
+      <polygon points="1422,214 1284,232 1284,436 1422,472" class="frame-cut"/>
+      <polygon points="1244,237 1134,251 1134,414 1244,428" class="frame-cut"/>
+      <polygon points="1098,256 1012,267 1012,407 1098,398" class="frame-cut"/>
+      <line x1="18" y1="345" x2="156" y2="336" class="slider"/>
+      <line x1="196" y1="334" x2="306" y2="332" class="slider"/>
+      <line x1="342" y1="330" x2="428" y2="331" class="slider"/>
+      <line x1="1284" y1="336" x2="1422" y2="345" class="slider"/>
+      <line x1="1134" y1="332" x2="1244" y2="334" class="slider"/>
+      <line x1="1012" y1="331" x2="1098" y2="330" class="slider"/>
+    </g>
+
+    <!-- windshield borders + pillar + wiper -->
+    <rect x="470" y="242" width="500" height="276" rx="14" fill="none" stroke="#b7a984" stroke-width="3"/>
+    <rect x="708" y="250" width="24" height="262" fill="#ded2b2"/>
+    <rect x="486" y="256" width="222" height="248" rx="10" fill="none" stroke="#a2946e" stroke-width="3"/>
+    <rect x="732" y="256" width="222" height="248" rx="10" fill="none" stroke="#a2946e" stroke-width="3"/>
+    <line x1="560" y1="500" x2="636" y2="426" stroke="#4b4436" stroke-width="4" stroke-linecap="round"/>
+    <rect x="455" y="248" width="530" height="8" fill="#cbbd98"/>
+
+    <!-- tubelights -->
+    <rect class="tubelight" x="565" y="64" width="118" height="12" rx="6" transform="rotate(4 624 70)"/>
+    <rect class="tubelight" x="757" y="64" width="118" height="12" rx="6" transform="rotate(-4 816 70)"/>
+
+    <!-- grab rails + hanging handles -->
+    <g class="railband">
+      <line x1="315" y1="0" x2="630" y2="128" class="rail"/>
+      <line x1="1125" y1="0" x2="810" y2="128" class="rail"/>
+      <g class="handle h1"><line x1="382" y1="28" x2="382" y2="86"/><circle cx="382" cy="99" r="14"/></g>
+      <g class="handle h2"><line x1="472" y1="64" x2="472" y2="112"/><circle cx="472" cy="123" r="12"/></g>
+      <g class="handle h3"><line x1="551" y1="96" x2="551" y2="134"/><circle cx="551" cy="143" r="10"/></g>
+      <g class="handle h4"><line x1="1058" y1="28" x2="1058" y2="86"/><circle cx="1058" cy="99" r="14"/></g>
+      <g class="handle h5"><line x1="968" y1="64" x2="968" y2="112"/><circle cx="968" cy="123" r="12"/></g>
+      <g class="handle h6"><line x1="889" y1="96" x2="889" y2="134"/><circle cx="889" cy="143" r="10"/></g>
+    </g>
+
+    <!-- ============ BULKHEAD: title + three boards ============ -->
+    <g id="title-group">
+      <text id="title" x="720" y="158" class="title-paint">TOWN BUS HITS</text>
+      <line x1="664" y1="170" x2="776" y2="170" class="title-rule"/>
+    </g>
+    <!-- thirukkural board -->
+    <g id="kural-board">
+      <rect x="462" y="180" width="172" height="62" rx="4" fill="#20376b"/>
+      <rect x="467" y="185" width="162" height="52" rx="2.5" fill="none" stroke="#d9b64a" stroke-width="1.6"/>
+      <text id="quote-l1" x="548" y="205" class="kural-line">நிதானமே</text>
+      <text id="quote-l2" x="548" y="221" class="kural-line">பிரதானம்</text>
+      <text id="quote-src" x="548" y="233" class="kural-src">bus wisdom</text>
+    </g>
+    <!-- route plate -->
+    <g id="route-plate">
+      <rect x="646" y="180" width="180" height="62" rx="4" fill="#eeb62d" stroke="#17130e" stroke-width="2.5"/>
+      <circle cx="672" cy="211" r="14" fill="#faf3dc" stroke="#17130e" stroke-width="2"/>
+      <text id="route-no" x="672" y="216" class="route-num">12</text>
+      <text id="route-ta" x="748" y="209" class="route-tam">திருச்சி - லால்குடி</text>
+      <text id="route-en" x="748" y="228" class="route-eng">TRICHY - LALGUDI</text>
+    </g>
+    <!-- passengers board -->
+    <g id="pres-board">
+      <rect x="838" y="180" width="142" height="62" rx="4" fill="#f3edd9"/>
+      <rect x="843" y="185" width="132" height="52" rx="2.5" fill="none" stroke="#8c2f22" stroke-width="1.6"/>
+      <text x="909" y="199" class="pres-head">· உடன் பயணிகள் ·</text>
+      <text id="pres-num" x="909" y="222" class="pres-num">12</text>
+      <text x="909" y="234" class="pres-eng">others on this bus</text>
+    </g>
+
+    <!-- ============ DRIVER + DASH (right) ============ -->
+    <g id="driver-zone">
+      <line x1="962" y1="256" x2="962" y2="560" stroke="#c9b98d" stroke-width="7"/>
+      <path d="M846,392 q0,-36 34,-36 q34,0 34,36 l6,52 -80,0 Z" fill="#3c2f26"/>
+      <circle cx="880" cy="352" r="24" fill="#4a3a2e"/>
+      <path d="M856,348 q24,-16 48,0 q-4,-22 -24,-22 q-20,0 -24,22" fill="#26201a"/>
+      <ellipse cx="852" cy="456" rx="54" ry="15" fill="none" stroke="#2f2a22" stroke-width="7"/>
+      <line x1="852" y1="456" x2="852" y2="441" stroke="#2f2a22" stroke-width="4"/>
+      <line x1="852" y1="456" x2="806" y2="460" stroke="#2f2a22" stroke-width="4"/>
+      <line x1="852" y1="456" x2="898" y2="460" stroke="#2f2a22" stroke-width="4"/>
+    </g>
+    <g id="dash">
+      <polygon points="760,470 985,470 985,552 736,552" fill="#556b52"/>
+      <polygon points="760,470 985,470 985,478 758,478" fill="#3f5240"/>
+      <g id="speedo">
+        <circle cx="944" cy="512" r="30" fill="#f2ecd7" stroke="#2c2820" stroke-width="3"/>
+        <g id="speedo-ticks" stroke="#5c5546" stroke-width="2"></g>
+        <line id="needle" x1="944" y1="512" x2="944" y2="489" stroke="#b3341f" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="944" cy="512" r="3.6" fill="#b3341f"/>
+        <text id="speedo-num" x="944" y="534" class="speedo-txt">0</text>
+      </g>
+      <g id="hot-horn" class="hotspot">
+        <circle cx="888" cy="512" r="17" fill="#8c2f22"/>
+        <circle cx="888" cy="512" r="17" fill="none" stroke="#2c2820" stroke-width="3"/>
+        <circle cx="883" cy="506" r="5" fill="#b4553f" opacity=".8"/>
+        <text x="888" y="580" class="hotlabel">ஹாரன் · horn</text>
+      </g>
+      <g id="ticket" transform="translate(752,480) rotate(-4) scale(0.66)">
+        <path d="M0,8 q8,-8 16,0 q8,-8 16,0 q8,-8 16,0 q8,-8 16,0 q8,-8 16,0 q8,-8 16,0 q8,-8 16,0 q8,-8 16,0 q8,-8 16,0 q8,-8 16,0 l0,96 q-8,8 -16,0 q-8,8 -16,0 q-8,8 -16,0 q-8,8 -16,0 q-8,8 -16,0 q-8,8 -16,0 q-8,8 -16,0 q-8,8 -16,0 q-8,8 -16,0 q-8,8 -16,0 Z" fill="#f4c7d0"/>
+        <text x="80" y="34" class="tick-head">டிக்கெட் · TICKET</text>
+        <line x1="18" y1="44" x2="142" y2="44" stroke="#7c4350" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <text id="ticket-no" x="80" y="68" class="tick-serial">№ 041217</text>
+        <text x="80" y="90" class="tick-fare">₹2.50</text>
+        <circle id="t-hole" cx="134" cy="26" r="6" fill="#efe6cf"/>
+      </g>
+    </g>
+
+    <!-- ============ ENGINE HUMP + GEAR (left of aisle) ============ -->
+    <g id="hot-engine" class="hotspot">
+      <path d="M556,578 v-50 a72,30 0 0 1 144,0 v50 Z" fill="#33584a"/>
+      <path d="M560,528 a68,26 0 0 1 136,0 l0,6 -136,0 Z" fill="#264539"/>
+      <g stroke="#1d3229" stroke-width="3"><line x1="572" y1="546" x2="684" y2="546"/><line x1="572" y1="558" x2="684" y2="558"/><line x1="572" y1="570" x2="684" y2="570"/></g>
+      <circle cx="628" cy="514" r="6" fill="#c9b98d"/>
+      <line x1="716" y1="566" x2="734" y2="522" stroke="#2f2a22" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="737" cy="516" r="8" fill="#17130e"/>
+      <text x="640" y="600" class="hotlabel">இன்ஜின் · engine</text>
+    </g>
+
+    <!-- ============ SEATS + PASSENGERS ============ -->
+    <g id="seats-left">
+      <g class="seatrow">
+        <rect x="330" y="486" width="118" height="86" rx="8" fill="url(#seatG)"/>
+        <rect x="330" y="486" width="118" height="10" rx="5" fill="#a8794f"/>
+        <circle cx="392" cy="488" r="16" fill="#37271c"/>
+      </g>
+      <g class="seatrow">
+        <rect x="220" y="520" width="168" height="124" rx="10" fill="url(#seatG)"/>
+        <rect x="220" y="520" width="168" height="13" rx="6" fill="#a8794f"/>
+        <circle cx="270" cy="518" r="22" fill="#241a12"/>
+        <path d="M252,516 a22,22 0 0 1 36,-8" fill="none" stroke="#f2ecd7" stroke-width="3" stroke-dasharray="2 5"/>
+      </g>
+      <g class="seatrow">
+        <rect x="60" y="576" width="248" height="190" rx="12" fill="url(#seatG)"/>
+        <rect x="60" y="576" width="248" height="17" rx="8" fill="#a8794f"/>
+        <circle cx="150" cy="572" r="30" fill="#3c2c1e"/>
+      </g>
+    </g>
+    <g id="seats-right">
+      <g class="seatrow">
+        <rect x="992" y="486" width="118" height="86" rx="8" fill="url(#seatG)"/>
+        <rect x="992" y="486" width="118" height="10" rx="5" fill="#a8794f"/>
+      </g>
+      <g class="seatrow">
+        <rect x="1052" y="520" width="168" height="124" rx="10" fill="url(#seatG)"/>
+        <rect x="1052" y="520" width="168" height="13" rx="6" fill="#a8794f"/>
+        <circle cx="1160" cy="516" r="23" fill="#1f1812"/>
+        <circle cx="1122" cy="526" r="14" fill="#2e2218"/>
+        <path d="M1146,530 a23,23 0 0 0 30,-4" fill="none" stroke="#f2ecd7" stroke-width="3" stroke-dasharray="2 5"/>
+      </g>
+      <g class="seatrow">
+        <rect x="1132" y="576" width="248" height="190" rx="12" fill="url(#seatG)"/>
+        <rect x="1132" y="576" width="248" height="17" rx="8" fill="#a8794f"/>
+        <circle cx="1290" cy="570" r="31" fill="#332619"/>
+      </g>
+    </g>
+
+    <!-- ============ WHISTLE, hanging on the cab pole ============ -->
+    <g id="hot-whistle" class="hotspot">
+      <g id="whistle-swing">
+        <circle cx="962" cy="270" r="5" fill="#8a7a52"/>
+        <line x1="962" y1="270" x2="962" y2="338" stroke="#a32c2c" stroke-width="4"/>
+        <g transform="rotate(-14 962 346)">
+          <rect x="946" y="338" width="34" height="17" rx="8" fill="#c9a227"/>
+          <circle cx="978" cy="346" r="9" fill="#c9a227"/>
+          <circle cx="978" cy="346" r="4" fill="#8a6d12"/>
+          <rect x="946" y="338" width="34" height="6" rx="3" fill="#e2c25a"/>
+        </g>
+      </g>
+      <text x="948" y="390" class="hotlabel">விசில் · whistle</text>
+    </g>
+  </g>
+
+  <!-- grain + vignette + night -->
+  <rect id="grain" x="0" y="0" width="1440" height="900" filter="url(#grainF)"/>
+  <rect x="0" y="0" width="1440" height="900" fill="url(#vign)"/>
+  <rect id="nightwash" x="0" y="0" width="1440" height="900" fill="#0e1630"/>
+</svg>
+
+<!-- ================= FLOATING UI ================= -->
+<nav id="links">
+  <a id="link-spotify" class="pl-link" target="_blank" rel="noopener" hidden>Spotify</a>
+  <a id="link-ytmusic" class="pl-link" target="_blank" rel="noopener" hidden>YT Music</a>
+  <button id="lang-toggle" title="Tamil / English">த / A</button>
+  <button id="theme-toggle" title="day / night">☀︎</button>
+</nav>
+
+<div id="playerdock">
+  <div id="pill">
+    <img id="thumb" alt="" width="44" height="44" />
+    <div id="meta">
+      <span id="song-title">–</span>
+      <span id="song-sub">–</span>
+    </div>
+    <div id="controls">
+      <button id="btn-prev" title="previous">⏮</button>
+      <button id="btn-play" title="play / pause">▶</button>
+      <button id="btn-next" title="next">⏭</button>
+    </div>
+    <div id="seekbox">
+      <span id="t-now">0:00</span>
+      <input id="seek" type="range" min="0" max="100" value="0" step="0.1" />
+      <span id="t-total">0:00</span>
+    </div>
+  </div>
+</div>
+
+<footer id="credit">
+  Inspired by <a href="https://saloon.wtf" target="_blank" rel="noopener">Deluxe Saloon</a>
+  by <a href="https://x.com/ybhrdwj" target="_blank" rel="noopener">Yash Bhardwaj</a>
+  · songs play via YouTube
+</footer>
+
+<div id="yt-hide"><div id="yt"></div></div>
+
+<script src="songs.js"></script>
+<script src="content.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
