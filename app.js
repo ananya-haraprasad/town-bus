@@ -1,44 +1,119 @@
-/* ============ Town Bus Hits — player + interior ============ */
+/* ============ Town Bus Hits — art-anchored player ============ */
 
 const $ = (id) => document.getElementById(id);
 
-/* ---------- language ---------- */
-let lang = "en";
-function applyLang() {
-  $("title").textContent = I18N[lang].title;
+/* ---------- where the paintings live ----------
+   The day/night frames share one composition, so ONE set of boxes
+   ([x1, y1, x2, y2] as % of image) pins the boards and hotspots in both
+   modes. If the art is ever replaced, only these numbers change. */
+const SCENES = {
+  day:   { el: "art-day",   w: 1672, h: 941  },
+  night: { el: "art-night", w: 2560, h: 1440 },
+};
+const BOX = {
+  yellow:  [30.8, 24.6, 43.5, 30.2],
+  blue:    [59.2, 24.8, 71.1, 30.2],
+  whistle: [41.0, 67.0, 47.5, 86.0],
+  horn:    [55.5, 66.5, 59.5, 74.5],
+  engine:  [45.5, 57.0, 61.5, 84.0],
+};
+let mode = "day";
+
+/* ---------- layout engine: pin overlays to the painting ---------- */
+function layout() {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  // position both images with cover-fit
+  for (const m of ["day", "night"]) {
+    const s = SCENES[m];
+    const scale = Math.max(vw / s.w, vh / s.h);
+    s.scale = scale;
+    s.dx = (vw - s.w * scale) / 2;
+    s.dy = (vh - s.h * scale) / 2;
+    const img = $(s.el);
+    img.style.left = s.dx + "px";
+    img.style.top = s.dy + "px";
+    img.style.width = s.w * scale + "px";
+    img.style.height = s.h * scale + "px";
+  }
+  // overlays follow the ACTIVE painting
+  const s = SCENES[mode];
+  const put = (id, box) => {
+    const el = $(id);
+    const x = (box[0] / 100) * s.w * s.scale + s.dx;
+    const y = (box[1] / 100) * s.h * s.scale + s.dy;
+    const w = ((box[2] - box[0]) / 100) * s.w * s.scale;
+    const h = ((box[3] - box[1]) / 100) * s.h * s.scale;
+    el.style.left = x + "px"; el.style.top = y + "px";
+    el.style.width = w + "px"; el.style.height = h + "px";
+    return { x, y, w, h };
+  };
+  const yb = put("board-yellow", BOX.yellow);
+  const bb = put("board-blue", BOX.blue);
+  put("hot-whistle", BOX.whistle);
+  put("hot-horn", BOX.horn);
+  put("hot-engine", BOX.engine);
+
+  // scale board text to board size, then shrink-to-fit
+  $("route-ta").style.fontSize = yb.h * 0.44 + "px";
+  fit($("route-ta"), yb.w * 0.86);
+  const kh = bb.h;
+  $("kural-l1").style.fontSize = kh * 0.31 + "px";
+  $("kural-l2").style.fontSize = kh * 0.31 + "px";
+  fit($("kural-l1"), bb.w * 0.94);
+  fit($("kural-l2"), bb.w * 0.94);
+
+  // on phones the cover-crop can cut the boards: hide half-visible board text
+  // and move the kural into the fallback card instead
+  const fullyVisible = (r) => r.x >= -2 && r.x + r.w <= vw + 2;
+  $("board-yellow").style.visibility = fullyVisible(yb) ? "visible" : "hidden";
+  const blueOk = fullyVisible(bb);
+  $("board-blue").style.visibility = blueOk ? "visible" : "hidden";
+  $("kural-fallback").hidden = blueOk;
+
+  if (location.hash.includes("debug")) {
+    $("stage").classList.add("debug");
+    const r = (id) => { const b = $(id).getBoundingClientRect(); return `${id}:${b.left},${b.top},${b.right},${b.bottom}`; };
+    document.title = `vw${window.innerWidth}x${window.innerHeight} s${SCENES[mode].scale.toFixed(3)} | ` + ["board-yellow", "route-ta", "board-blue", "kural-l1", "kural-l2", "hot-whistle", "pill", "controls", "btn-play", "btn-next", "meta", "song-title"].map(r).join(" | ");
+  }
 }
-$("lang-toggle").addEventListener("click", () => {
-  lang = lang === "en" ? "ta" : "en";
-  applyLang();
-});
+function fit(el, maxW) {
+  let size = parseFloat(el.style.fontSize);
+  el.style.transform = "none";
+  for (let i = 0; i < 12 && el.scrollWidth > maxW && size > 6; i++) {
+    size *= 0.92;
+    el.style.fontSize = size + "px";
+  }
+}
+window.addEventListener("resize", layout);
 
 /* ---------- day / night ---------- */
-function setTheme(mode) {
-  document.body.classList.toggle("night", mode === "night");
-  document.body.classList.toggle("day", mode === "day");
-  $("theme-toggle").textContent = mode === "night" ? "☾" : "☀︎";
+function setTheme(m) {
+  mode = m;
+  const stage = $("stage");
+  stage.classList.add("morph");
+  document.body.classList.toggle("night", m === "night");
+  document.body.classList.toggle("day", m === "day");
+  const dn = $("daynight");
+  dn.setAttribute("aria-pressed", m === "night" ? "true" : "false");
+  dn.setAttribute("aria-label", m === "night" ? "switch to day" : "switch to night");
+  layout();
+  clearTimeout(setTheme._t);
+  setTheme._t = setTimeout(() => stage.classList.remove("morph"), 1850);
 }
-$("theme-toggle").addEventListener("click", () =>
-  setTheme(document.body.classList.contains("night") ? "day" : "night")
-);
+$("daynight").addEventListener("click", () => setTheme(mode === "day" ? "night" : "day"));
 (function autoTheme() {
+  const forced = location.hash.replace("#", "").split(",")[0];
   const h = new Date().getHours();
-  setTheme(h >= 6 && h < 18 ? "day" : "night");
+  const m = forced === "night" || forced === "day" ? forced : h >= 6 && h < 18 ? "day" : "night";
+  mode = m;
+  document.body.classList.toggle("night", m === "night");
+  document.body.classList.toggle("day", m === "day");
+  const dn = $("daynight");
+  dn.setAttribute("aria-pressed", m === "night" ? "true" : "false");
+  dn.setAttribute("aria-label", m === "night" ? "switch to day" : "switch to night");
 })();
 
-/* ---------- portrait crop: zoom into the front of the bus ---------- */
-function fitView() {
-  $("scene-svg").setAttribute(
-    "viewBox",
-    window.innerHeight > window.innerWidth ? "440 60 580 840" : "0 0 1440 900"
-  );
-}
-fitView();
-window.addEventListener("resize", fitView);
-
 /* ---------- playlist mode ---------- */
-// If YT_PLAYLIST is set, the site plays that YouTube playlist live:
-// songs added to the playlist appear automatically.
 const PLAYLIST_ID = (() => {
   if (typeof YT_PLAYLIST === "undefined" || !YT_PLAYLIST) return "";
   const m = YT_PLAYLIST.match(/[?&]list=([^&]+)/);
@@ -46,19 +121,11 @@ const PLAYLIST_ID = (() => {
 })();
 const usePlaylist = !!PLAYLIST_ID;
 
-/* ---------- playlist links ---------- */
-if (PLAYLIST_LINKS.spotify) {
-  $("link-spotify").href = PLAYLIST_LINKS.spotify;
-  $("link-spotify").hidden = false;
-}
-const ytmLink = PLAYLIST_LINKS.ytmusic ||
-  (usePlaylist ? `https://music.youtube.com/playlist?list=${PLAYLIST_ID}` : "");
-if (ytmLink) {
-  $("link-ytmusic").href = ytmLink;
-  $("link-ytmusic").hidden = false;
-}
+if (PLAYLIST_LINKS.spotify) { $("link-spotify").href = PLAYLIST_LINKS.spotify; $("link-spotify").hidden = false; }
+const ytmLink = PLAYLIST_LINKS.ytmusic || (usePlaylist ? `https://music.youtube.com/playlist?list=${PLAYLIST_ID}` : "");
+if (ytmLink) { $("link-ytmusic").href = ytmLink; $("link-ytmusic").hidden = false; }
 
-/* ---------- shuffle order, random start ---------- */
+/* ---------- shuffle order for fallback list ---------- */
 const order = SONGS.map((_, i) => i);
 for (let i = order.length - 1; i > 0; i--) {
   const j = Math.floor(Math.random() * (i + 1));
@@ -84,34 +151,21 @@ window.onYouTubeIframeAPIReady = function () {
     events: {
       onReady: () => {
         playerReady = true;
-        if (usePlaylist) {
-          player.cuePlaylist({ list: PLAYLIST_ID, listType: "playlist" });
-        } else {
-          cueCurrent();
-        }
+        if (usePlaylist) player.cuePlaylist({ list: PLAYLIST_ID, listType: "playlist" });
+        else cueCurrent();
       },
       onStateChange: (e) => {
-        if (e.data === YT.PlayerState.CUED && usePlaylist) {
-          player.setLoop(true);
-          syncFromPlayer();
-        }
+        if (e.data === YT.PlayerState.CUED) { attemptAutoplay(); }
+        if (e.data === YT.PlayerState.CUED && usePlaylist) { player.setLoop(true); syncFromPlayer(); }
         if (e.data === YT.PlayerState.ENDED && !usePlaylist) next(+1);
-        if (e.data === YT.PlayerState.PLAYING) {
-          errorStreak = 0;
-          setRolling(true);
-          if (usePlaylist) syncFromPlayer();
-        }
+        if (e.data === YT.PlayerState.PLAYING) { errorStreak = 0; setRolling(true); if (usePlaylist) syncFromPlayer(); }
         if (e.data === YT.PlayerState.PAUSED) setRolling(false);
       },
       onError: () => {
         errorStreak++;
-        if (usePlaylist) {
-          if (errorStreak < 40) setTimeout(() => player.nextVideo(), 400);
-        } else if (errorStreak < SONGS.length) {
-          next(+1);
-        } else {
-          showSong({ title: "no playable songs — check songs.js", movie: "", year: "" });
-        }
+        if (usePlaylist) { if (errorStreak < 40) setTimeout(() => player.nextVideo(), 400); }
+        else if (errorStreak < SONGS.length) next(+1);
+        else showSong({ title: "no playable songs — check songs.js", movie: "", year: "" });
       },
     },
   });
@@ -119,17 +173,13 @@ window.onYouTubeIframeAPIReady = function () {
 
 function currentSong() { return SONGS[order[pos]]; }
 
-// first paint: song is cued and shown; browsers only allow sound after a
-// real tap/click, so the first interaction anywhere starts playback
 function cueCurrent() {
   const s = currentSong();
   player.cueVideoById(s.id);
   showSong(s);
-  newRoute();
-  punchTicket();
+  onSongChange();
 }
 
-/* playlist mode: show whatever video the player is on, clean up the title */
 let lastVideoId = null;
 function cleanTitle(t) {
   if (!t) return "";
@@ -147,32 +197,7 @@ function syncFromPlayer() {
   $("song-sub").textContent = author;
   $("thumb").src = `https://i.ytimg.com/vi/${d.video_id}/mqdefault.jpg`;
   document.title = `▶ ${cleanTitle(d.title)} · Town Bus Hits`;
-  newRoute();
-  punchTicket();
-}
-
-let musicStarted = false; // stays false until playback truly begins
-function firstTap() {
-  audio();
-  if (musicStarted || playing || !playerReady) return;
-  if (usePlaylist) {
-    player.setShuffle(true);
-    const n = (player.getPlaylist() || []).length;
-    if (n > 1) player.playVideoAt(Math.floor(Math.random() * n));
-    else player.playVideo();
-  } else {
-    player.playVideo();
-  }
-}
-document.addEventListener("pointerdown", firstTap);
-document.addEventListener("keydown", firstTap);
-
-function loadCurrent() {
-  const s = currentSong();
-  player.loadVideoById(s.id);
-  showSong(s);
-  newRoute();
-  punchTicket();
+  onSongChange();
 }
 
 function showSong(s) {
@@ -183,20 +208,43 @@ function showSong(s) {
 }
 
 function next(step) {
-  if (usePlaylist) {
-    step > 0 ? player.nextVideo() : player.previousVideo();
-    return;
-  }
+  if (usePlaylist) { step > 0 ? player.nextVideo() : player.previousVideo(); return; }
   pos = (pos + step + order.length) % order.length;
-  loadCurrent();
+  const s = currentSong();
+  player.loadVideoById(s.id);
+  showSong(s);
+  onSongChange();
 }
 
 function setRolling(on) {
   playing = on;
   if (on) musicStarted = true;
   document.body.classList.toggle("rolling", on);
-  $("btn-play").textContent = on ? "❚❚" : "▶";
 }
+
+let musicStarted = false;
+/* try to start the music the moment the bus opens. Browsers often block
+   sound before the first interaction — if this fails, firstTap below
+   starts it on the first touch/click/keypress instead. */
+function attemptAutoplay() {
+  if (musicStarted || playing || !playerReady) return;
+  try {
+    if (usePlaylist) {
+      player.setShuffle(true);
+      const n = (player.getPlaylist() || []).length;
+      if (n > 1) player.playVideoAt(Math.floor(Math.random() * n));
+      else player.playVideo();
+    } else {
+      player.playVideo();
+    }
+  } catch (_) {}
+}
+function firstTap() {
+  audio();
+  attemptAutoplay();
+}
+document.addEventListener("pointerdown", firstTap);
+document.addEventListener("keydown", firstTap);
 
 $("btn-play").addEventListener("click", () => {
   if (!playerReady) return;
@@ -205,13 +253,11 @@ $("btn-play").addEventListener("click", () => {
 $("btn-next").addEventListener("click", () => { clickSfx(); next(+1); });
 $("btn-prev").addEventListener("click", () => { clickSfx(); next(-1); });
 
-/* seek bar */
+/* seek */
 let seeking = false;
 $("seek").addEventListener("input", () => { seeking = true; });
 $("seek").addEventListener("change", () => {
-  if (playerReady && player.getDuration) {
-    player.seekTo((player.getDuration() * $("seek").value) / 100, true);
-  }
+  if (playerReady && player.getDuration) player.seekTo((player.getDuration() * $("seek").value) / 100, true);
   seeking = false;
 });
 function fmt(t) {
@@ -237,86 +283,54 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "w") blowWhistle();
 });
 
-/* ---------- route plate ---------- */
-function newRoute() {
-  const r = ROUTES[Math.floor(Math.random() * ROUTES.length)];
-  $("route-no").textContent = r.no;
+/* ---------- set dressing: one route + one kural per visit ---------- */
+function sessionPick(key, n) {
+  try {
+    let v = sessionStorage.getItem(key);
+    if (v === null || +v >= n) {
+      v = Math.floor(Math.random() * n);
+      sessionStorage.setItem(key, v);
+    }
+    return +v;
+  } catch (_) {
+    return Math.floor(Math.random() * n);
+  }
+}
+function dressScene() {
+  // route on the yellow board
+  const r = ROUTES[sessionPick("tb-route", ROUTES.length)];
   $("route-ta").textContent = r.ta;
-  $("route-en").textContent = r.en.toUpperCase();
+  // a kural on the blue board (about 1 visit in 12, a classic line instead —
+  // that one is Purananuru, NOT a kural, so it never gets a kural number)
+  const useExtra = typeof EXTRA_QUOTES !== "undefined" && sessionPick("tb-extra", 12) === 0;
+  const q = useExtra
+    ? EXTRA_QUOTES[sessionPick("tb-quote", EXTRA_QUOTES.length)]
+    : KURAL[sessionPick("tb-kural", KURAL.length)];
+  $("kural-l1").textContent = q.l1;
+  $("kural-l2").textContent = q.l2;
+  $("kural-fallback").textContent = `${q.l1} ${q.l2}` + (q.n ? ` — திருக்குறள் ${q.n}` : " — கணியன் பூங்குன்றனார், புறநானூறு");
 }
 
-/* ---------- thirukkural board ---------- */
-let quoteIdx = Math.floor(Math.random() * QUOTES.length);
-function splitTwo(s) {
-  if (s.length <= 15) return [s, ""];
-  const mid = Math.floor(s.length / 2);
-  let cut = s.lastIndexOf(" ", mid);
-  if (cut < 4) cut = s.indexOf(" ", mid);
-  if (cut < 0) return [s, ""];
-  return [s.slice(0, cut), s.slice(cut + 1)];
-}
-function showQuote() {
-  const q = QUOTES[quoteIdx % QUOTES.length];
-  const [l1, l2] = splitTwo(q.ta);
-  const size = q.ta.length > 26 ? 13 : 17;
-  $("quote-l1").setAttribute("font-size", size);
-  $("quote-l2").setAttribute("font-size", size);
-  $("quote-l1").textContent = l1;
-  $("quote-l2").textContent = l2;
-  $("quote-src").textContent = q.en;
-}
-showQuote();
-setInterval(() => { quoteIdx++; showQuote(); }, 45000);
-
-/* ---------- ticket ---------- */
-let ticketNo = 41000 + Math.floor(Math.random() * 9000);
-function punchTicket() {
-  ticketNo++;
-  $("ticket-no").textContent = "№ " + String(ticketNo).padStart(6, "0");
-  $("ticket").classList.remove("punched");
-  setTimeout(() => $("ticket").classList.add("punched"), 400);
+/* ---------- per-song ---------- */
+function onSongChange() {
+  layout();
 }
 
-/* ---------- passengers board (fake presence for now) ----------
-   To make it real for free: Firebase Realtime DB presence
-   (Spark plan) — each visitor writes a key with onDisconnect().remove(),
-   the count is the number of keys. Only this block changes. */
+/* ---------- fellow passengers (fake presence for now) ----------
+   Real version: Firebase Realtime DB presence (free) — each visitor writes a
+   key with onDisconnect().remove(); the count is the number of keys. */
 let riders = 6 + Math.floor(Math.random() * 9) + (new Date().getHours() >= 18 ? 5 : 0);
-function updatePresenceText() {
-  $("pres-num").textContent = riders;
+function updateRiders() {
+  $("riders-n").textContent = riders;
+  $("riders").setAttribute("aria-label", `${riders} ${riders === 1 ? "person" : "people"} travelling with you`);
 }
-updatePresenceText();
+updateRiders();
 setInterval(() => {
-  riders = Math.max(3, riders + (Math.random() < 0.5 ? -1 : 1));
-  updatePresenceText();
+  riders = Math.min(24, Math.max(3, riders + (Math.random() < 0.5 ? -1 : 1)));
+  updateRiders();
 }, 25000 + Math.random() * 20000);
 
-/* ---------- speedometer (on the dashboard) ---------- */
-const DIAL = { cx: 944, cy: 512, r: 30 };
-(function buildTicks() {
-  const g = $("speedo-ticks");
-  for (let v = 0; v <= 100; v += 20) {
-    const a = Math.PI + (v / 100) * Math.PI;
-    const x1 = DIAL.cx + (DIAL.r - 9) * Math.cos(a), y1 = DIAL.cy + (DIAL.r - 9) * Math.sin(a);
-    const x2 = DIAL.cx + (DIAL.r - 4) * Math.cos(a), y2 = DIAL.cy + (DIAL.r - 4) * Math.sin(a);
-    const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    l.setAttribute("x1", x1); l.setAttribute("y1", y1);
-    l.setAttribute("x2", x2); l.setAttribute("y2", y2);
-    g.appendChild(l);
-  }
-})();
-let speed = 0, speedTarget = 0;
-setInterval(() => {
-  speedTarget = playing ? 42 + Math.sin(Date.now() / 3000) * 9 + Math.random() * 6 : 0;
-}, 900);
-setInterval(() => {
-  speed += (speedTarget - speed) * 0.15;
-  const deg = -90 + (Math.min(speed, 100) / 100) * 180;
-  $("needle").setAttribute("transform", `rotate(${deg} ${DIAL.cx} ${DIAL.cy})`);
-  $("speedo-num").textContent = Math.round(speed);
-}, 120);
-
-/* ============ WHIMSY SOUNDS (all synthesized, all 3D) ============ */
+/* ============ WHIMSY SOUNDS (synthesized, spatial) ============ */
 
 let actx = null;
 function audio() {
@@ -341,35 +355,78 @@ function sweepPanner(p, fromX, toX, dur) {
   })(t0);
 }
 
-/* conductor whistle: two sharp pea-whistle bursts, rear-right */
+/* conductor's whistle: two sharp pea-whistle bursts ("weet—weet").
+   triangle carrier for bite, FM trill + AM rattle for the pea, breath
+   noise underneath, and a tanh stage for a slightly blown edge. */
 function blowWhistle() {
   const ctx = audio();
-  $("hot-whistle").classList.remove("blown");
-  requestAnimationFrame(() => $("hot-whistle").classList.add("blown"));
-  const pan = makePanner(2.2, 0.3, -1.2);
+  const pan = makePanner(-1.2, 0.2, -1);
   pan.connect(ctx.destination);
-  [0, 0.36].forEach((offset, n) => {
+
+  const shaper = ctx.createWaveShaper();
+  const curve = new Float32Array(256);
+  for (let i = 0; i < 256; i++) { const x = i / 128 - 1; curve[i] = Math.tanh(2.1 * x); }
+  shaper.curve = curve;
+  const master = ctx.createGain();
+  master.gain.value = 0.9;
+  master.connect(shaper).connect(pan);
+
+  // shared breath-noise buffer
+  const nlen = ctx.sampleRate * 0.5;
+  const nbuf = ctx.createBuffer(1, nlen, ctx.sampleRate);
+  const ndata = nbuf.getChannelData(0);
+  for (let i = 0; i < nlen; i++) ndata[i] = Math.random() * 2 - 1;
+
+  [[0, 0.3, 2450], [0.38, 0.24, 2700]].forEach(([offset, dur, f0]) => {
     const t = ctx.currentTime + offset;
+
+    // envelope
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, t);
+    env.gain.exponentialRampToValueAtTime(0.42, t + 0.012);
+    env.gain.setValueAtTime(0.42, t + dur - 0.07);
+    env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+    // pea rattle: AM around 0.7
+    const amNode = ctx.createGain();
+    amNode.gain.value = 0.72;
+    const am = ctx.createOscillator();
+    am.frequency.value = 29;
+    const amG = ctx.createGain();
+    amG.gain.value = 0.28;
+    am.connect(amG).connect(amNode.gain);
+
+    // carrier with FM trill and a little pitch scoop at the attack
     const osc = ctx.createOscillator();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(n ? 2950 : 2750, t);
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(f0 * 0.92, t);
+    osc.frequency.exponentialRampToValueAtTime(f0, t + 0.035);
     const trill = ctx.createOscillator();
-    trill.frequency.value = 34;
-    const trillGain = ctx.createGain();
-    trillGain.gain.value = 320;
-    trill.connect(trillGain).connect(osc.frequency);
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(0.24, t + 0.02);
-    g.gain.setValueAtTime(0.24, t + 0.22);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
-    osc.connect(g).connect(pan);
-    osc.start(t); osc.stop(t + 0.32);
-    trill.start(t); trill.stop(t + 0.32);
+    trill.frequency.value = 29;
+    const trillG = ctx.createGain();
+    trillG.gain.value = 240;
+    trill.connect(trillG).connect(osc.frequency);
+
+    osc.connect(env).connect(amNode).connect(master);
+    osc.start(t); osc.stop(t + dur + 0.02);
+    trill.start(t); trill.stop(t + dur + 0.02);
+    am.start(t); am.stop(t + dur + 0.02);
+
+    // breath
+    const breath = ctx.createBufferSource();
+    breath.buffer = nbuf;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass"; bp.frequency.value = 3000; bp.Q.value = 1.2;
+    const bg = ctx.createGain();
+    bg.gain.setValueAtTime(0.0001, t);
+    bg.gain.exponentialRampToValueAtTime(0.05, t + 0.015);
+    bg.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    breath.connect(bp).connect(bg).connect(master);
+    breath.start(t); breath.stop(t + dur + 0.02);
   });
 }
 
-/* musical air horn: two-tone blast passing left → right with a pitch drop */
+/* musical air horn: passes left → right with a pitch drop */
 function hornBlast() {
   const ctx = audio();
   const pan = makePanner(-7, 0.4, -1.5);
@@ -401,7 +458,7 @@ function hornBlast() {
   sweepPanner(pan, -7, 7, dur);
 }
 
-/* engine idle: looped brown noise + low thump, under the floor */
+/* engine idle: brown noise + low thump under the floor */
 let engineNodes = null;
 function engineToggle() {
   const ctx = audio();
@@ -410,6 +467,7 @@ function engineToggle() {
     const n = engineNodes; engineNodes = null;
     setTimeout(() => { n.src.stop(); n.osc.stop(); }, 500);
     $("hot-engine").classList.remove("on");
+    $("hot-engine").setAttribute("aria-pressed", "false");
     document.body.classList.remove("engine");
     return;
   }
@@ -442,10 +500,11 @@ function engineToggle() {
   src.start(); osc.start(); lfo.start();
   engineNodes = { src, osc, lfo, gain };
   $("hot-engine").classList.add("on");
+  $("hot-engine").setAttribute("aria-pressed", "true");
   document.body.classList.add("engine");
 }
 
-/* small conductor-punch click for prev/next */
+/* small conductor-punch click */
 function clickSfx() {
   const ctx = audio();
   const t = ctx.currentTime;
@@ -462,4 +521,9 @@ $("hot-whistle").addEventListener("click", blowWhistle);
 $("hot-horn").addEventListener("click", hornBlast);
 $("hot-engine").addEventListener("click", engineToggle);
 
-applyLang();
+/* ---------- boot ---------- */
+dressScene();
+onSongChange();
+layout();
+$("art-day").addEventListener("load", layout);
+$("art-night").addEventListener("load", layout);
