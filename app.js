@@ -252,7 +252,7 @@ function probeSucceeded() {
    own handlers, and doing both would start and instantly stop the song. */
 const OWN_HANDLER_KEYS = ["Space", "ArrowLeft", "ArrowRight"];
 function firstTap(e) {
-  audio();
+  loadWhistle(audio()); // decode it now so the first blow is instant
   userWants = true;
   if (e && e.type === "keydown" && OWN_HANDLER_KEYS.includes(e.code)) return;
   if (e && e.target && e.target.closest && e.target.closest("#controls, #seekbox, .hotspot")) return;
@@ -366,89 +366,39 @@ function sweepPanner(p, fromX, toX, dur) {
 /* conductor's whistle: two sharp pea-whistle bursts ("weet—weet").
    triangle carrier for bite, FM trill + AM rattle for the pea, breath
    noise underneath, and a tanh stage for a slightly blown edge. */
-/* The conductor's whistle.
-   A pea whistle is mostly AIR: a hard band of noise around 3 kHz shaped by the
-   chamber, with the pea rattling inside so the whole thing warbles about 28
-   times a second. Tones alone sound like a synth beep, so noise carries it and
-   two thin partials only ride on top. */
-let noiseBuf = null;
-function noiseSource(ctx) {
-  if (!noiseBuf) {
-    const len = Math.floor(ctx.sampleRate * 1.2);
-    noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
-    const d = noiseBuf.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+/* The conductor's whistle — a real pea whistle (public domain, CC0), his own
+   double blast. Loaded once, then played through the same HRTF panner so it
+   comes from his side of the aisle. */
+const WHISTLE_URL = "assets/whistle.mp3";
+let whistleBuf = null;
+let whistleLoading = null;
+
+function loadWhistle(ctx) {
+  if (whistleBuf) return Promise.resolve(whistleBuf);
+  if (!whistleLoading) {
+    whistleLoading = fetch(WHISTLE_URL)
+      .then((r) => r.arrayBuffer())
+      .then((b) => new Promise((res, rej) => ctx.decodeAudioData(b, res, rej)))
+      .then((buf) => (whistleBuf = buf))
+      .catch(() => null);
   }
+  return whistleLoading;
+}
+
+function playWhistleBuffer(ctx) {
   const src = ctx.createBufferSource();
-  src.buffer = noiseBuf;
-  src.loop = true;
-  return src;
+  src.buffer = whistleBuf;
+  const g = ctx.createGain();
+  g.gain.value = 0.9;
+  const pan = makePanner(-1.2, 0.2, -1);
+  src.connect(g).connect(pan).connect(ctx.destination);
+  src.start();
 }
 
 function blowWhistle() {
   const ctx = audio();
-  const pan = makePanner(-1.2, 0.2, -1);
-  const out = ctx.createGain();
-  out.gain.value = 0.9;
-  out.connect(pan); pan.connect(ctx.destination);
-
-  // prreep — preep: second burst a touch higher and shorter
-  [{ at: 0, dur: 0.30, f: 2850 }, { at: 0.36, dur: 0.23, f: 3020 }].forEach((b) => {
-    const t = ctx.currentTime + b.at;
-    const end = t + b.dur;
-
-    // the pea: one warble every layer of this burst shares
-    const pea = ctx.createOscillator();
-    pea.type = "triangle";
-    pea.frequency.setValueAtTime(25, t);
-    pea.frequency.linearRampToValueAtTime(31, end);
-    pea.start(t); pea.stop(end + 0.03);
-
-    // air through the chamber, the body of the sound
-    const air = noiseSource(ctx);
-    const band = ctx.createBiquadFilter();
-    band.type = "bandpass";
-    band.frequency.setValueAtTime(b.f, t);
-    band.Q.value = 8.5;
-    const wobble = ctx.createGain();
-    wobble.gain.value = 300;            // pea shoves the resonance around
-    pea.connect(wobble).connect(band.frequency);
-    const airGain = ctx.createGain();
-    airGain.gain.setValueAtTime(0.0001, t);
-    airGain.gain.exponentialRampToValueAtTime(0.5, t + 0.014);
-    airGain.gain.setValueAtTime(0.44, end - 0.06);
-    airGain.gain.exponentialRampToValueAtTime(0.0001, end);
-    air.connect(band).connect(airGain).connect(out);
-    air.start(t); air.stop(end + 0.03);
-
-    // pitched core, tremolo'd by the same pea
-    [{ m: 1, lvl: 0.17 }, { m: 1.33, lvl: 0.055 }].forEach((p) => {
-      const o = ctx.createOscillator();
-      o.type = "sine";
-      o.frequency.setValueAtTime(b.f * p.m * 0.985, t);
-      o.frequency.exponentialRampToValueAtTime(b.f * p.m, t + 0.04);
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(p.lvl, t + 0.016);
-      g.gain.setValueAtTime(p.lvl * 0.85, end - 0.06);
-      g.gain.exponentialRampToValueAtTime(0.0001, end);
-      const trem = ctx.createGain();
-      trem.gain.value = p.lvl * 0.5;
-      pea.connect(trem).connect(g.gain);
-      o.connect(g).connect(out);
-      o.start(t); o.stop(end + 0.03);
-    });
-
-    // the chiff of breath at the very start
-    const chiff = noiseSource(ctx);
-    const hp = ctx.createBiquadFilter();
-    hp.type = "highpass"; hp.frequency.value = 2000;
-    const cg = ctx.createGain();
-    cg.gain.setValueAtTime(0.2, t);
-    cg.gain.exponentialRampToValueAtTime(0.0001, t + 0.055);
-    chiff.connect(hp).connect(cg).connect(out);
-    chiff.start(t); chiff.stop(t + 0.07);
-  });
+  if (whistleBuf) { playWhistleBuffer(ctx); return; }
+  loadWhistle(ctx).then((buf) => { if (buf) playWhistleBuffer(ctx); });
 }
 
 /* musical air horn: passes left → right with a pitch drop */
