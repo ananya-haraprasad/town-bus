@@ -6,9 +6,6 @@
   <title>Town Bus Hits</title>
   <meta name="description" content="A nostalgic Tamil Nadu town bus, from day into night." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Arima:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body class="day">
@@ -73,15 +70,14 @@
         <span id="t-total">0:00</span>
       </div>
     </div>
-    <div id="riders" aria-label="12 people travelling with you">
-      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 11.5a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2zm0 1.8c-3.4 0-6.8 1.7-6.8 4.2v1.3c0 .6.5 1 1 1h11.6c.6 0 1-.4 1-1v-1.3c0-2.5-3.4-4.2-6.8-4.2z"/></svg>
-      <span id="riders-n">12</span>
+    <div id="riders" aria-live="polite" aria-label="14 co-travellers right now">
+      <span id="riders-dot" aria-hidden="true"></span>
+      <span id="riders-copy">
+        <span id="riders-label">உடன் பயணிகள்</span>
+        <span id="riders-count"><b id="riders-n">14</b> co-travellers</span>
+      </span>
     </div>
   </div>
-  <p id="kural-card">
-    <span id="kural-text"></span>
-    <span id="kural-src"></span>
-  </p>
 </div>
 
 <footer id="credit">
@@ -94,7 +90,6 @@
 
 <script src="songs.js"></script>
 <script src="content.js"></script>
-<script src="kural.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

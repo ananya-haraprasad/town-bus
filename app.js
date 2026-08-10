@@ -159,9 +159,13 @@ function syncFromPlayer() {
   const d = player.getVideoData && player.getVideoData();
   if (!d || !d.video_id || d.video_id === lastVideoId) return;
   lastVideoId = d.video_id;
-  const author = (d.author || "").replace(/\s*-\s*Topic$/i, "");
-  $("song-title").textContent = cleanTitle(d.title) || "…";
-  $("song-sub").textContent = author;
+  // YouTube leaves author empty on some uploads: fall back to the part of the
+  // title after the dash ("Song — Movie"), so the second line is never blank
+  const author = (d.author || "").replace(/\s*-\s*Topic$/i, "").trim();
+  const full = d.title || "";
+  const tail = full.split("|")[1] || full.split(/\s[-–]\s/)[1] || "";
+  $("song-title").textContent = cleanTitle(full) || "…";
+  $("song-sub").textContent = author || cleanTitle(tail) || "Town Bus Hits";
   $("thumb").src = `https://i.ytimg.com/vi/${d.video_id}/mqdefault.jpg`;
   document.title = `▶ ${cleanTitle(d.title)} · Town Bus Hits`;
   onSongChange();
@@ -190,20 +194,24 @@ function setRolling(on) {
 }
 
 let musicStarted = false;
-/* try to start the music the moment the bus opens. Browsers often block
-   sound before the first interaction — if this fails, firstTap below
-   starts it on the first touch/click/keypress instead. */
+let startPicked = false; // the ride's opening song is chosen exactly once
+
+/* Which song the bus opens with is decided once, the moment the playlist is
+   ready. Browsers usually block sound until the visitor interacts, so the
+   chosen song sits cued and the first tap simply presses play on it —
+   whatever is showing in the pill is what plays. */
 function attemptAutoplay() {
   if (musicStarted || playing || !playerReady) return;
   try {
-    if (usePlaylist) {
-      player.setShuffle(true);
-      const n = (player.getPlaylist() || []).length;
-      if (n > 1) player.playVideoAt(Math.floor(Math.random() * n));
-      else player.playVideo();
-    } else {
-      player.playVideo();
+    if (!startPicked) {
+      startPicked = true;
+      if (usePlaylist) {
+        player.setShuffle(true);
+        const n = (player.getPlaylist() || []).length;
+        if (n > 1) { player.playVideoAt(Math.floor(Math.random() * n)); return; }
+      }
     }
+    player.playVideo();
   } catch (_) {}
 }
 function firstTap() {
@@ -250,28 +258,6 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "w") blowWhistle();
 });
 
-/* ---------- set dressing: one route + one kural per visit ---------- */
-function sessionPick(key, n) {
-  try {
-    let v = sessionStorage.getItem(key);
-    if (v === null || +v >= n) {
-      v = Math.floor(Math.random() * n);
-      sessionStorage.setItem(key, v);
-    }
-    return +v;
-  } catch (_) {
-    return Math.floor(Math.random() * n);
-  }
-}
-/* One kural per ride, on the plate under the player. The line painted on the
-   bus's own board is "யாதும் ஊரே யாவரும் கேளிர்" (Purananuru), so the plate
-   only ever carries Thirukkural — no duplication, no miscrediting. */
-function dressScene() {
-  const q = KURAL[sessionPick("tb-kural", KURAL.length)];
-  $("kural-text").textContent = `${q.l1} ${q.l2}`;
-  $("kural-src").textContent = `திருக்குறள் ${q.n}`;
-}
-
 /* ---------- per-song ---------- */
 function onSongChange() {
   layout();
@@ -280,16 +266,31 @@ function onSongChange() {
 /* ---------- fellow passengers (fake presence for now) ----------
    Real version: Firebase Realtime DB presence (free) — each visitor writes a
    key with onDisconnect().remove(); the count is the number of keys. */
-let riders = 6 + Math.floor(Math.random() * 9) + (new Date().getHours() >= 18 ? 5 : 0);
+let riders = 9 + Math.floor(Math.random() * 8) + (new Date().getHours() >= 18 ? 4 : 0);
 function updateRiders() {
   $("riders-n").textContent = riders;
-  $("riders").setAttribute("aria-label", `${riders} ${riders === 1 ? "person" : "people"} travelling with you`);
+  $("riders-count").innerHTML =
+    `<b id="riders-n">${riders}</b> co-traveller${riders === 1 ? "" : "s"}`;
+  $("riders").setAttribute("aria-label", `${riders} co-travellers right now`);
 }
 updateRiders();
-setInterval(() => {
-  riders = Math.min(24, Math.max(3, riders + (Math.random() < 0.5 ? -1 : 1)));
-  updateRiders();
-}, 25000 + Math.random() * 20000);
+
+/* the count drifts like a real bus filling and emptying: someone gets on or
+   off every few minutes, never the same gap twice */
+(function driftRiders() {
+  const wait = 90000 + Math.random() * 150000; // 1.5 to 4 minutes
+  setTimeout(() => {
+    const el = $("riders");
+    el.classList.add("shifting");
+    setTimeout(() => {
+      const step = Math.random() < 0.5 ? -1 : 1;
+      riders = Math.min(26, Math.max(4, riders + step));
+      updateRiders();
+      el.classList.remove("shifting");
+    }, 350);
+    driftRiders();
+  }, wait);
+})();
 
 /* ============ WHIMSY SOUNDS (synthesized, spatial) ============ */
 
@@ -483,7 +484,6 @@ $("hot-horn").addEventListener("click", hornBlast);
 $("hot-engine").addEventListener("click", engineToggle);
 
 /* ---------- boot ---------- */
-dressScene();
 onSongChange();
 layout();
 $("art-day").addEventListener("load", layout);

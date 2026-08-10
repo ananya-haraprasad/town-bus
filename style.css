@@ -3,13 +3,11 @@
 :root {
   --yellow: #d8b62c;
   --ink-cream: #f4efe2;
-  --board-blue-ink: #f2ecd7;
   /* liquid glass */
   --glass-bg: rgba(22, 22, 26, 0.44);
   --glass-border: rgba(255, 255, 255, 0.13);
   --glass-hi: inset 0 1px 0 rgba(255, 255, 255, 0.1);
   --glass-blur: blur(22px) saturate(1.5);
-  --board-font: "Arima", "Noto Sans Tamil", sans-serif;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -172,27 +170,30 @@ body.night .dn-moon { opacity: 1; transform: translate(-50%, -50%) rotate(0deg) 
 
 #playerdock {
   position: fixed; z-index: 10; left: 0; right: 0;
-  bottom: calc(24px + env(safe-area-inset-bottom));
+  bottom: calc(34px + env(safe-area-inset-bottom));
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   padding: 0 14px; pointer-events: none;
 }
 
 /* liquid-glass player */
 #dockrow {
-  display: flex; align-items: center; justify-content: center;
-  gap: 12px; width: 100%;
+  display: grid; align-items: stretch;
+  grid-template-columns: 1fr min(680px, 100%) 1fr;
+  gap: 14px; width: 100%;
 }
+#pill { grid-column: 2; }
+#riders { grid-column: 3; justify-self: start; }
 #pill {
   pointer-events: auto;
   display: grid;
   grid-template-columns: auto 1fr auto;
   grid-template-areas: "thumb meta controls" "seek seek seek";
   align-items: center; gap: 6px 16px;
-  width: min(560px, 100%);
+  width: 100%;
   background: var(--glass-bg);
   color: var(--ink-cream);
   border: 1px solid var(--glass-border);
-  border-radius: 32px; padding: 14px 20px 13px;
+  border-radius: 34px; padding: 16px 24px 15px;
   backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
   box-shadow: var(--glass-hi), 0 18px 50px rgba(4, 6, 12, 0.42);
 }
@@ -223,20 +224,39 @@ body.night .dn-moon { opacity: 1; transform: translate(-50%, -50%) rotate(0deg) 
 body.rolling #btn-play .icon-play { display: none; }
 body.rolling #btn-play .icon-pause { display: block; }
 
-/* fellow passengers — a small glass bubble riding next to the player */
+/* co-travellers — a live count riding beside the player */
 #riders {
   pointer-events: auto;
-  display: flex; align-items: center; gap: 7px;
-  height: 56px; padding: 0 18px 0 15px;
-  border-radius: 999px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 22px; border-radius: 999px;
   background: var(--glass-bg); color: var(--ink-cream);
   border: 1px solid var(--glass-border);
   backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
   box-shadow: var(--glass-hi), 0 18px 50px rgba(4, 6, 12, 0.42);
   flex: none;
 }
-#riders svg { width: 20px; height: 20px; opacity: 0.8; }
-#riders-n { font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+#riders-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #4ade80; flex: none;
+  box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.55);
+  animation: livepulse 2.6s ease-out infinite;
+}
+@keyframes livepulse {
+  0%   { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.5); }
+  70%  { box-shadow: 0 0 0 7px rgba(74, 222, 128, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+}
+#riders-copy { display: flex; flex-direction: column; line-height: 1.25; }
+#riders-label {
+  font-size: 13.5px; font-weight: 600; letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+#riders-count { font-size: 11.5px; opacity: 0.58; white-space: nowrap; }
+#riders-n {
+  font-weight: 700; font-variant-numeric: tabular-nums;
+  transition: opacity 0.35s;
+}
+#riders.shifting #riders-n { opacity: 0.25; }
 
 #seekbox {
   grid-area: seek; display: flex; align-items: center; gap: 10px;
@@ -256,20 +276,6 @@ body.rolling #btn-play .icon-pause { display: block; }
   width: 11px; height: 11px; border-radius: 50%;
   background: var(--ink-cream); border: none;
 }
-
-/* the kural of the ride — a quiet enamel plate under the player */
-#kural-card {
-  pointer-events: none;
-  font-family: var(--board-font);
-  display: flex; flex-direction: column; align-items: center; gap: 1px;
-  background: rgba(18, 24, 52, 0.5); color: var(--board-blue-ink);
-  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid rgba(217, 182, 74, 0.38);
-  border-radius: 12px; padding: 7px 18px;
-  text-align: center; max-width: min(560px, 92vw);
-}
-#kural-text { font-size: 13px; line-height: 1.5; }
-#kural-src { font-size: 9.5px; letter-spacing: 1.2px; opacity: 0.55; }
 
 #credit {
   position: fixed; z-index: 10; left: 0; right: 0; bottom: 5px;
@@ -292,17 +298,14 @@ body.rolling #btn-play .icon-pause { display: block; }
   #controls button { width: 38px; height: 38px; }
   #btn-play { width: 46px; height: 46px; }
   #btn-play svg { width: 26px; height: 26px; }
-  #riders { height: 48px; padding: 0 14px 0 12px; gap: 5px; }
-  #riders svg { width: 17px; height: 17px; }
-  #riders-n { font-size: 14px; }
   #links { gap: 10px; }
-  /* the riders bubble drops to its own line so the song title keeps its room */
-  #dockrow { flex-wrap: wrap; gap: 8px; }
-  #pill { flex: 1 1 100%; }
-  #riders { margin-left: auto; height: 38px; padding: 0 13px 0 11px; }
-  #riders svg { width: 15px; height: 15px; }
-  #riders-n { font-size: 13px; }
-  #kural-text { font-size: 12px; }
+  /* phones: player on top, the count centred under it */
+  #dockrow { grid-template-columns: 1fr; gap: 9px; }
+  #pill { grid-column: 1; width: 100%; }
+  #riders { grid-column: 1; justify-self: center; }
+  #riders { align-self: center; padding: 11px 18px; gap: 9px; }
+  #riders-label { font-size: 12.5px; }
+  #riders-count { font-size: 10.5px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
