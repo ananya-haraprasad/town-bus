@@ -122,16 +122,27 @@ window.onYouTubeIframeAPIReady = function () {
         else cueCurrent();
       },
       onStateChange: (e) => {
-        if (e.data === YT.PlayerState.CUED) { attemptAutoplay(); }
-        if (e.data === YT.PlayerState.CUED && usePlaylist) { player.setLoop(true); syncFromPlayer(); }
+        if (e.data === YT.PlayerState.CUED) {
+          if (usePlaylist) player.setLoop(true);
+          beginProbe();
+        }
         if (e.data === YT.PlayerState.ENDED && !usePlaylist) next(+1);
-        if (e.data === YT.PlayerState.PLAYING) { errorStreak = 0; setRolling(true); if (usePlaylist) syncFromPlayer(); }
-        if (e.data === YT.PlayerState.PAUSED) setRolling(false);
+        if (e.data === YT.PlayerState.PLAYING) {
+          errorStreak = 0;
+          if (probing) { probeSucceeded(); return; }
+          setRolling(true);
+          if (usePlaylist) syncFromPlayer();
+        }
+        if (e.data === YT.PlayerState.PAUSED && !probing) setRolling(false);
       },
+      /* A song whose label blocks embedding errors the instant it plays. The
+         probe below finds those while muted, so the visitor never sees one. */
       onError: () => {
         errorStreak++;
-        if (usePlaylist) { if (errorStreak < 40) setTimeout(() => player.nextVideo(), 400); }
-        else if (errorStreak < SONGS.length) next(+1);
+        if (usePlaylist) {
+          if (errorStreak < 40) setTimeout(() => player.nextVideo(), 300);
+          else { probing = false; document.body.classList.remove("boarding"); }
+        } else if (errorStreak < SONGS.length) next(+1);
         else showSong({ title: "no playable songs — check songs.js", movie: "", year: "" });
       },
     },
@@ -194,36 +205,73 @@ function setRolling(on) {
 }
 
 let musicStarted = false;
-let startPicked = false; // the ride's opening song is chosen exactly once
+let probing = false;    // silently auditioning songs, muted, before anyone looks
+let probeDone = false;
+let userWants = false;  // the visitor has asked for sound, so stop tiptoeing
 
-/* Which song the bus opens with is decided once, the moment the playlist is
-   ready. Browsers usually block sound until the visitor interacts, so the
-   chosen song sits cued and the first tap simply presses play on it —
-   whatever is showing in the pill is what plays. */
-function attemptAutoplay() {
-  if (musicStarted || playing || !playerReady) return;
+/* Pick the ride's opening song, then audition it MUTED. Browsers allow muted
+   playback without a gesture, so this is how we learn whether a song is
+   actually playable: anything its label blocks from embedding errors here and
+   gets skipped while nobody is watching. Whatever survives is what the pill
+   shows, so pressing play always plays the song on screen. */
+function beginProbe() {
+  if (probeDone || probing || musicStarted || !playerReady) return;
+  probing = true;
+  document.body.classList.add("boarding");
   try {
-    if (!startPicked) {
-      startPicked = true;
-      if (usePlaylist) {
-        player.setShuffle(true);
-        const n = (player.getPlaylist() || []).length;
-        if (n > 1) { player.playVideoAt(Math.floor(Math.random() * n)); return; }
-      }
+    player.mute();
+    if (usePlaylist) {
+      player.setShuffle(true);
+      const n = (player.getPlaylist() || []).length;
+      if (n > 1) { player.playVideoAt(Math.floor(Math.random() * n)); return; }
     }
     player.playVideo();
-  } catch (_) {}
+  } catch (_) { probing = false; }
 }
-function firstTap() {
+
+function probeSucceeded() {
+  probing = false;
+  probeDone = true;
+  document.body.classList.remove("boarding");
+  try {
+    if (userWants) {
+      // they already pressed play while we were auditioning: just turn it up
+      player.unMute();
+      player.setVolume(100);
+      setRolling(true);
+    } else {
+      player.pauseVideo();
+      player.seekTo(0, true);
+    }
+  } catch (_) {}
+  syncFromPlayer();
+}
+
+/* The first real tap anywhere turns the sound on and plays what is already
+   showing. Taps on the player's own buttons are left alone — they have their
+   own handlers, and doing both would start and instantly stop the song. */
+const OWN_HANDLER_KEYS = ["Space", "ArrowLeft", "ArrowRight"];
+function firstTap(e) {
   audio();
-  attemptAutoplay();
+  userWants = true;
+  if (e && e.type === "keydown" && OWN_HANDLER_KEYS.includes(e.code)) return;
+  if (e && e.target && e.target.closest && e.target.closest("#controls, #seekbox, .hotspot")) return;
+  if (musicStarted || playing || !playerReady) return;
+  try {
+    player.unMute();
+    player.setVolume(100);
+    player.playVideo();
+  } catch (_) {}
 }
 document.addEventListener("pointerdown", firstTap);
 document.addEventListener("keydown", firstTap);
 
 $("btn-play").addEventListener("click", () => {
   if (!playerReady) return;
-  playing ? player.pauseVideo() : player.playVideo();
+  if (playing) { userWants = false; player.pauseVideo(); return; }
+  userWants = true;
+  try { player.unMute(); player.setVolume(100); } catch (_) {}
+  player.playVideo();
 });
 $("btn-next").addEventListener("click", () => { clickSfx(); next(+1); });
 $("btn-prev").addEventListener("click", () => { clickSfx(); next(-1); });
@@ -318,71 +366,88 @@ function sweepPanner(p, fromX, toX, dur) {
 /* conductor's whistle: two sharp pea-whistle bursts ("weet—weet").
    triangle carrier for bite, FM trill + AM rattle for the pea, breath
    noise underneath, and a tanh stage for a slightly blown edge. */
+/* The conductor's whistle.
+   A pea whistle is mostly AIR: a hard band of noise around 3 kHz shaped by the
+   chamber, with the pea rattling inside so the whole thing warbles about 28
+   times a second. Tones alone sound like a synth beep, so noise carries it and
+   two thin partials only ride on top. */
+let noiseBuf = null;
+function noiseSource(ctx) {
+  if (!noiseBuf) {
+    const len = Math.floor(ctx.sampleRate * 1.2);
+    noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuf;
+  src.loop = true;
+  return src;
+}
+
 function blowWhistle() {
   const ctx = audio();
   const pan = makePanner(-1.2, 0.2, -1);
-  pan.connect(ctx.destination);
+  const out = ctx.createGain();
+  out.gain.value = 0.9;
+  out.connect(pan); pan.connect(ctx.destination);
 
-  const shaper = ctx.createWaveShaper();
-  const curve = new Float32Array(256);
-  for (let i = 0; i < 256; i++) { const x = i / 128 - 1; curve[i] = Math.tanh(2.1 * x); }
-  shaper.curve = curve;
-  const master = ctx.createGain();
-  master.gain.value = 0.9;
-  master.connect(shaper).connect(pan);
+  // prreep — preep: second burst a touch higher and shorter
+  [{ at: 0, dur: 0.30, f: 2850 }, { at: 0.36, dur: 0.23, f: 3020 }].forEach((b) => {
+    const t = ctx.currentTime + b.at;
+    const end = t + b.dur;
 
-  // shared breath-noise buffer
-  const nlen = ctx.sampleRate * 0.5;
-  const nbuf = ctx.createBuffer(1, nlen, ctx.sampleRate);
-  const ndata = nbuf.getChannelData(0);
-  for (let i = 0; i < nlen; i++) ndata[i] = Math.random() * 2 - 1;
+    // the pea: one warble every layer of this burst shares
+    const pea = ctx.createOscillator();
+    pea.type = "triangle";
+    pea.frequency.setValueAtTime(25, t);
+    pea.frequency.linearRampToValueAtTime(31, end);
+    pea.start(t); pea.stop(end + 0.03);
 
-  [[0, 0.3, 2450], [0.38, 0.24, 2700]].forEach(([offset, dur, f0]) => {
-    const t = ctx.currentTime + offset;
+    // air through the chamber, the body of the sound
+    const air = noiseSource(ctx);
+    const band = ctx.createBiquadFilter();
+    band.type = "bandpass";
+    band.frequency.setValueAtTime(b.f, t);
+    band.Q.value = 8.5;
+    const wobble = ctx.createGain();
+    wobble.gain.value = 300;            // pea shoves the resonance around
+    pea.connect(wobble).connect(band.frequency);
+    const airGain = ctx.createGain();
+    airGain.gain.setValueAtTime(0.0001, t);
+    airGain.gain.exponentialRampToValueAtTime(0.5, t + 0.014);
+    airGain.gain.setValueAtTime(0.44, end - 0.06);
+    airGain.gain.exponentialRampToValueAtTime(0.0001, end);
+    air.connect(band).connect(airGain).connect(out);
+    air.start(t); air.stop(end + 0.03);
 
-    // envelope
-    const env = ctx.createGain();
-    env.gain.setValueAtTime(0.0001, t);
-    env.gain.exponentialRampToValueAtTime(0.42, t + 0.012);
-    env.gain.setValueAtTime(0.42, t + dur - 0.07);
-    env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    // pitched core, tremolo'd by the same pea
+    [{ m: 1, lvl: 0.17 }, { m: 1.33, lvl: 0.055 }].forEach((p) => {
+      const o = ctx.createOscillator();
+      o.type = "sine";
+      o.frequency.setValueAtTime(b.f * p.m * 0.985, t);
+      o.frequency.exponentialRampToValueAtTime(b.f * p.m, t + 0.04);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(p.lvl, t + 0.016);
+      g.gain.setValueAtTime(p.lvl * 0.85, end - 0.06);
+      g.gain.exponentialRampToValueAtTime(0.0001, end);
+      const trem = ctx.createGain();
+      trem.gain.value = p.lvl * 0.5;
+      pea.connect(trem).connect(g.gain);
+      o.connect(g).connect(out);
+      o.start(t); o.stop(end + 0.03);
+    });
 
-    // pea rattle: AM around 0.7
-    const amNode = ctx.createGain();
-    amNode.gain.value = 0.72;
-    const am = ctx.createOscillator();
-    am.frequency.value = 29;
-    const amG = ctx.createGain();
-    amG.gain.value = 0.28;
-    am.connect(amG).connect(amNode.gain);
-
-    // carrier with FM trill and a little pitch scoop at the attack
-    const osc = ctx.createOscillator();
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(f0 * 0.92, t);
-    osc.frequency.exponentialRampToValueAtTime(f0, t + 0.035);
-    const trill = ctx.createOscillator();
-    trill.frequency.value = 29;
-    const trillG = ctx.createGain();
-    trillG.gain.value = 240;
-    trill.connect(trillG).connect(osc.frequency);
-
-    osc.connect(env).connect(amNode).connect(master);
-    osc.start(t); osc.stop(t + dur + 0.02);
-    trill.start(t); trill.stop(t + dur + 0.02);
-    am.start(t); am.stop(t + dur + 0.02);
-
-    // breath
-    const breath = ctx.createBufferSource();
-    breath.buffer = nbuf;
-    const bp = ctx.createBiquadFilter();
-    bp.type = "bandpass"; bp.frequency.value = 3000; bp.Q.value = 1.2;
-    const bg = ctx.createGain();
-    bg.gain.setValueAtTime(0.0001, t);
-    bg.gain.exponentialRampToValueAtTime(0.05, t + 0.015);
-    bg.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    breath.connect(bp).connect(bg).connect(master);
-    breath.start(t); breath.stop(t + dur + 0.02);
+    // the chiff of breath at the very start
+    const chiff = noiseSource(ctx);
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass"; hp.frequency.value = 2000;
+    const cg = ctx.createGain();
+    cg.gain.setValueAtTime(0.2, t);
+    cg.gain.exponentialRampToValueAtTime(0.0001, t + 0.055);
+    chiff.connect(hp).connect(cg).connect(out);
+    chiff.start(t); chiff.stop(t + 0.07);
   });
 }
 

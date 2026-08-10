@@ -183,6 +183,13 @@ body.night .dn-moon { opacity: 1; transform: translate(-50%, -50%) rotate(0deg) 
 }
 #pill { grid-column: 2; }
 #riders { grid-column: 3; justify-self: start; }
+/* while YouTube is still waking up, the pill sits quietly instead of
+   showing dashes and a dead 0:00 */
+body.boarding #seekbox { opacity: 0.28; }
+body.boarding #song-sub { opacity: 0.4; }
+body.boarding #controls { opacity: 0.5; pointer-events: none; }
+body.boarding #thumb { animation: thumbwait 1.6s ease-in-out infinite alternate; }
+@keyframes thumbwait { from { opacity: 0.5; } to { opacity: 0.85; } }
 #pill {
   pointer-events: auto;
   display: grid;

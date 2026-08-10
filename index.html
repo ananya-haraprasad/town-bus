@@ -4,16 +4,25 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Town Bus Hits</title>
-  <meta name="description" content="A nostalgic Tamil Nadu town bus, from day into night." />
+  <meta name="description" content="A ride down memory lane, in a Tamil Nadu town bus." />
+  <!-- what people see when the link is shared -->
+  <meta property="og:title" content="Town Bus Hits" />
+  <meta property="og:description" content="A ride down memory lane, in a Tamil Nadu town bus." />
+  <meta property="og:image" content="assets/day.jpg" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>" />
+  <link rel="preconnect" href="https://www.youtube.com" />
+  <link rel="preconnect" href="https://i.ytimg.com" />
+  <link rel="dns-prefetch" href="https://www.google.com" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body class="day">
 
 <!-- ======== THE BUS ======== -->
 <div id="stage">
-  <img id="art-day" src="assets/day.jpg?v=2" alt="Inside a Tamil Nadu town bus, daytime — conductor with a whistle, passengers seated, palm trees and fields through the windows" />
-  <img id="art-night" src="assets/night.jpg?v=2" alt="The same bus at night — moonlit road ahead, warm lamp glow by the shrine" />
+  <img id="art-day" src="assets/day.jpg?v=2" decoding="async" alt="Inside a Tamil Nadu town bus, daytime — conductor with a whistle, passengers seated, palm trees and fields through the windows" />
+  <img id="art-night" src="assets/night.jpg?v=2" decoding="async" alt="The same bus at night — moonlit road ahead, warm lamp glow by the shrine" />
 
   <!-- things you can touch (small targets last, so they sit on top) -->
   <button id="hot-engine" class="hotspot" data-label="இன்ஜின் · engine" aria-label="toggle the engine hum" aria-pressed="false"></button>
@@ -49,8 +58,8 @@
     <div id="pill">
       <img id="thumb" alt="" width="54" height="54" />
       <div id="meta">
-        <span id="song-title">–</span>
-        <span id="song-sub">–</span>
+        <span id="song-title">பாட்டு ஏறுது…</span>
+        <span id="song-sub">boarding</span>
       </div>
       <div id="controls">
         <button id="btn-prev" title="previous" aria-label="previous song">
