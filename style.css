@@ -224,7 +224,7 @@ body.night .dn-moon { opacity: 1; transform: translate(-50%, -50%) rotate(0deg) 
 body.rolling #btn-play .icon-play { display: none; }
 body.rolling #btn-play .icon-pause { display: block; }
 
-/* co-travellers — a live count riding beside the player */
+/* உடன் பயணிகள் — the live count riding beside the player */
 #riders {
   pointer-events: auto;
   display: flex; align-items: center; gap: 10px;
@@ -246,14 +246,12 @@ body.rolling #btn-play .icon-pause { display: block; }
   70%  { box-shadow: 0 0 0 7px rgba(74, 222, 128, 0); }
   100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
 }
-#riders-copy { display: flex; flex-direction: column; line-height: 1.25; }
 #riders-label {
-  font-size: 13.5px; font-weight: 600; letter-spacing: 0.2px;
-  white-space: nowrap;
+  font-size: 14px; font-weight: 600; letter-spacing: 0.2px;
+  white-space: nowrap; opacity: 0.85;
 }
-#riders-count { font-size: 11.5px; opacity: 0.58; white-space: nowrap; }
 #riders-n {
-  font-weight: 700; font-variant-numeric: tabular-nums;
+  font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums;
   transition: opacity 0.35s;
 }
 #riders.shifting #riders-n { opacity: 0.25; }
@@ -304,8 +302,8 @@ body.rolling #btn-play .icon-pause { display: block; }
   #pill { grid-column: 1; width: 100%; }
   #riders { grid-column: 1; justify-self: center; }
   #riders { align-self: center; padding: 11px 18px; gap: 9px; }
-  #riders-label { font-size: 12.5px; }
-  #riders-count { font-size: 10.5px; }
+  #riders-label { font-size: 13px; }
+  #riders-n { font-size: 15px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -269,9 +269,7 @@ function onSongChange() {
 let riders = 9 + Math.floor(Math.random() * 8) + (new Date().getHours() >= 18 ? 4 : 0);
 function updateRiders() {
   $("riders-n").textContent = riders;
-  $("riders-count").innerHTML =
-    `<b id="riders-n">${riders}</b> co-traveller${riders === 1 ? "" : "s"}`;
-  $("riders").setAttribute("aria-label", `${riders} co-travellers right now`);
+  $("riders").setAttribute("aria-label", `உடன் பயணிகள் ${riders}`);
 }
 updateRiders();
 
