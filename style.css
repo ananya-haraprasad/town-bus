@@ -27,6 +27,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 #stage img {
   position: absolute;
   user-select: none; -webkit-user-drag: none;
+  /* a hair of overscan, so the sway below never shows an edge */
+  transform: scale(1.014);
+  will-change: transform;
 }
 /* staggered crossfade: the incoming frame leads, the outgoing one lingers
    a beat — no grey double-exposure midpoint */
@@ -35,7 +38,22 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 #art-night { opacity: 0; }
 body.night #art-night { opacity: 1; }
 body.night #art-day { opacity: 0; }
-body.engine #stage img { animation: judder 0.09s linear infinite; }
+/* the bus rolls while a song is playing: an uneven road, not a metronome.
+   The sway lives on the paintings, the engine judder on their container, so
+   the two motions layer instead of overwriting each other. */
+body.rolling #stage img { animation: bus-ride 3.1s ease-in-out infinite; }
+@keyframes bus-ride {
+  0%   { transform: scale(1.014) translateY(0)      rotate(0); }
+  11%  { transform: scale(1.014) translateY(-1.7px) rotate(0.07deg); }
+  24%  { transform: scale(1.014) translateY(0.9px)  rotate(-0.05deg); }
+  36%  { transform: scale(1.014) translateY(-0.5px) rotate(0.03deg); }
+  49%  { transform: scale(1.014) translateY(1.8px)  rotate(-0.08deg); }
+  61%  { transform: scale(1.014) translateY(-1.2px) rotate(0.05deg); }
+  74%  { transform: scale(1.014) translateY(0.6px)  rotate(-0.02deg); }
+  87%  { transform: scale(1.014) translateY(-2px)   rotate(0.08deg); }
+  100% { transform: scale(1.014) translateY(0)      rotate(0); }
+}
+body.engine #stage { animation: judder 0.09s linear infinite; }
 @keyframes judder { 0%,100% { transform: translateY(0); } 50% { transform: translateY(0.7px); } }
 
 /* film grain — sits over the painting, under the chrome */
@@ -315,5 +333,6 @@ body.rolling #btn-play .icon-pause { display: block; }
 
 @media (prefers-reduced-motion: reduce) {
   #grain, .dn-halo { animation: none; }
+  body.rolling #stage img, body.engine #stage { animation: none; }
   #stage img, .dn-sun, .dn-moon, .dn-glass { transition-duration: 0.01s; }
 }
