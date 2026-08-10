@@ -14,7 +14,8 @@ const PLAYLIST_LINKS = {
   ytmusic: "https://music.youtube.com/playlist?list=PLWHnzK65Bknc",
 };
 
-// Painted route boards. One is picked at random for each visit.
+// Route names. Not shown right now — the painting's own board already carries
+// a painted Tamil line — kept here in case a route label comes back later.
 const ROUTES = [
   { no: "29C", ta: "பெரம்பூர் - பெசன்ட் நகர்", en: "Perambur - Besant Nagar" },
   { no: "47A", ta: "மயிலாப்பூர் - திருவான்மியூர்", en: "Mylapore - Thiruvanmiyur" },

@@ -18,22 +18,23 @@ Open http://localhost:4173. Don't open index.html directly as a file, the YouTub
 
 Everything is in `songs.js`. One row per song: YouTube video id (the 11 characters after `watch?v=`), title, movie, year. Videos that block embedding get skipped automatically, so just add and see.
 
-## Edit routes, links, boards
+## Edit links and the kural
 
-All in `content.js`:
-- `PLAYLIST_LINKS`: your Spotify / YT Music playlist URLs (the top-right icons).
-- `ROUTES`: the painted route boards (one picked per visit).
+`PLAYLIST_LINKS` in `content.js` holds the Spotify / YT Music URLs behind the
+top-right icons.
 
-The blue board shows a random Thirukkural per visit from `kural.js` (all 1330,
-public domain). About one visit in twelve it shows "யாதும் ஊரே யாவரும் கேளிர்"
-instead — that one is Purananuru, not a kural, and is credited as such.
+The plate under the player shows one random Thirukkural per visit from
+`kural.js` (all 1330, public domain), credited with its number. The line
+painted on the bus's own board inside the artwork is "யாதும் ஊரே யாவரும் கேளிர்",
+which is Purananuru rather than Thirukkural, so the plate never repeats it.
 
 ## Swap in generated art
 
 The paintings live in `assets/day.jpg` and `assets/night.jpg` — two frames with
-the same composition, crossfaded by the `body.night` class. Board and hotspot
-positions are one shared set of percentage boxes (`BOX` at the top of `app.js`);
-if the art is ever replaced, only those numbers change. Prompts are in `prompts.md`.
+the same composition, crossfaded by the `body.night` class. The clickable spots
+(whistle, horn button, engine housing) are one shared set of percentage boxes
+(`BOX` at the top of `app.js`); if the art is ever replaced, only those numbers
+change. Prompts are in `prompts.md`.
 
 ## Deploy free (GitHub Pages, personal account)
 

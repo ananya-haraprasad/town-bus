@@ -7,15 +7,13 @@ const $ = (id) => document.getElementById(id);
    ([x1, y1, x2, y2] as % of image) pins the boards and hotspots in both
    modes. If the art is ever replaced, only these numbers change. */
 const SCENES = {
-  day:   { el: "art-day",   w: 1672, h: 941  },
-  night: { el: "art-night", w: 2560, h: 1440 },
+  day:   { el: "art-day",   w: 1672, h: 941 },
+  night: { el: "art-night", w: 1672, h: 941 },
 };
 const BOX = {
-  yellow:  [30.8, 24.6, 43.5, 30.2],
-  blue:    [59.2, 24.8, 71.1, 30.2],
-  whistle: [41.0, 67.0, 47.5, 86.0],
-  horn:    [55.5, 66.5, 59.5, 74.5],
-  engine:  [45.5, 57.0, 61.5, 84.0],
+  whistle: [43.5, 61.0, 49.0, 71.0],
+  horn:    [52.0, 52.5, 57.5, 59.5],
+  engine:  [49.0, 57.0, 58.0, 74.0],
 };
 let mode = "day";
 
@@ -47,41 +45,14 @@ function layout() {
     el.style.width = w + "px"; el.style.height = h + "px";
     return { x, y, w, h };
   };
-  const yb = put("board-yellow", BOX.yellow);
-  const bb = put("board-blue", BOX.blue);
   put("hot-whistle", BOX.whistle);
   put("hot-horn", BOX.horn);
   put("hot-engine", BOX.engine);
 
-  // scale board text to board size, then shrink-to-fit
-  $("route-ta").style.fontSize = yb.h * 0.44 + "px";
-  fit($("route-ta"), yb.w * 0.86);
-  const kh = bb.h;
-  $("kural-l1").style.fontSize = kh * 0.31 + "px";
-  $("kural-l2").style.fontSize = kh * 0.31 + "px";
-  fit($("kural-l1"), bb.w * 0.94);
-  fit($("kural-l2"), bb.w * 0.94);
-
-  // on phones the cover-crop can cut the boards: hide half-visible board text
-  // and move the kural into the fallback card instead
-  const fullyVisible = (r) => r.x >= -2 && r.x + r.w <= vw + 2;
-  $("board-yellow").style.visibility = fullyVisible(yb) ? "visible" : "hidden";
-  const blueOk = fullyVisible(bb);
-  $("board-blue").style.visibility = blueOk ? "visible" : "hidden";
-  $("kural-fallback").hidden = blueOk;
-
   if (location.hash.includes("debug")) {
     $("stage").classList.add("debug");
-    const r = (id) => { const b = $(id).getBoundingClientRect(); return `${id}:${b.left},${b.top},${b.right},${b.bottom}`; };
-    document.title = `vw${window.innerWidth}x${window.innerHeight} s${SCENES[mode].scale.toFixed(3)} | ` + ["board-yellow", "route-ta", "board-blue", "kural-l1", "kural-l2", "hot-whistle", "pill", "controls", "btn-play", "btn-next", "meta", "song-title"].map(r).join(" | ");
-  }
-}
-function fit(el, maxW) {
-  let size = parseFloat(el.style.fontSize);
-  el.style.transform = "none";
-  for (let i = 0; i < 12 && el.scrollWidth > maxW && size > 6; i++) {
-    size *= 0.92;
-    el.style.fontSize = size + "px";
+    const r = (id) => { const b = $(id).getBoundingClientRect(); return `${id}:${Math.round(b.left)},${Math.round(b.top)},${Math.round(b.right)},${Math.round(b.bottom)}`; };
+    document.title = `vw${vw}x${vh} s${s.scale.toFixed(3)} | ` + ["hot-whistle", "hot-horn", "hot-engine", "pill"].map(r).join(" | ");
   }
 }
 window.addEventListener("resize", layout);
@@ -89,16 +60,12 @@ window.addEventListener("resize", layout);
 /* ---------- day / night ---------- */
 function setTheme(m) {
   mode = m;
-  const stage = $("stage");
-  stage.classList.add("morph");
   document.body.classList.toggle("night", m === "night");
   document.body.classList.toggle("day", m === "day");
   const dn = $("daynight");
   dn.setAttribute("aria-pressed", m === "night" ? "true" : "false");
   dn.setAttribute("aria-label", m === "night" ? "switch to day" : "switch to night");
   layout();
-  clearTimeout(setTheme._t);
-  setTheme._t = setTimeout(() => stage.classList.remove("morph"), 1850);
 }
 $("daynight").addEventListener("click", () => setTheme(mode === "day" ? "night" : "day"));
 (function autoTheme() {
@@ -296,19 +263,13 @@ function sessionPick(key, n) {
     return Math.floor(Math.random() * n);
   }
 }
+/* One kural per ride, on the plate under the player. The line painted on the
+   bus's own board is "யாதும் ஊரே யாவரும் கேளிர்" (Purananuru), so the plate
+   only ever carries Thirukkural — no duplication, no miscrediting. */
 function dressScene() {
-  // route on the yellow board
-  const r = ROUTES[sessionPick("tb-route", ROUTES.length)];
-  $("route-ta").textContent = r.ta;
-  // a kural on the blue board (about 1 visit in 12, a classic line instead —
-  // that one is Purananuru, NOT a kural, so it never gets a kural number)
-  const useExtra = typeof EXTRA_QUOTES !== "undefined" && sessionPick("tb-extra", 12) === 0;
-  const q = useExtra
-    ? EXTRA_QUOTES[sessionPick("tb-quote", EXTRA_QUOTES.length)]
-    : KURAL[sessionPick("tb-kural", KURAL.length)];
-  $("kural-l1").textContent = q.l1;
-  $("kural-l2").textContent = q.l2;
-  $("kural-fallback").textContent = `${q.l1} ${q.l2}` + (q.n ? ` — திருக்குறள் ${q.n}` : " — கணியன் பூங்குன்றனார், புறநானூறு");
+  const q = KURAL[sessionPick("tb-kural", KURAL.length)];
+  $("kural-text").textContent = `${q.l1} ${q.l2}`;
+  $("kural-src").textContent = `திருக்குறள் ${q.n}`;
 }
 
 /* ---------- per-song ---------- */
